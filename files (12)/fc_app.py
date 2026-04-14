@@ -16,6 +16,8 @@ import warnings, os, re, datetime, threading, csv
 warnings.filterwarnings('ignore')
 
 from fc_physics import (SFFEngine, BHUJ_LAYERS, BHUJ_VS_LAYERS,
+                         generate_layers_from_depth, generate_vs_layers_from_depth,
+                         SlipWeightedFC,
                          weighted_density, weighted_vs,
                          is1893_spectrum, read_pesmos_dat, read_pesmos_vs)
 from fc_plot_tools import PlotStyleEditor, add_style_toolbar, save_csv_dialog
@@ -27,11 +29,14 @@ plt.rcParams.update({'font.family':'DejaVu Serif','font.size':9,
     'axes.facecolor':'#FEFEFE','lines.linewidth':1.8})
 
 MC  = {'brune':'#888888','static':'#C0392B','dynamic':'#1565C0',
+       'slip':'#FF6F00',
        'double':'#8E44AD','tang':'#00838F'}
 MLB = {'brune':'Brune (natural fc)','static':'Type I Static (FINSIM)',
        'dynamic':'Type II Dynamic (EXSIM)','double':'Type III Double-Corner',
-       'tang':'Type IV Tang (2022)'}
-MLS = {'brune':':','static':'--','dynamic':'-','double':'-.','tang':(0,(3,1,1,1))}
+       'tang':'Type IV Tang (2022)',
+       'slip':'Type V Slip-Weighted (Proposed)'}
+MLS = {'brune':':','static':'--','dynamic':'-','double':'-.','tang':(0,(3,1,1,1)),
+       'slip':'-'}
 
 FC_EQS = {
     'brune':   'fc = 4.9e6·β·(Δσ/M₀)^(1/3)',
@@ -39,6 +44,7 @@ FC_EQS = {
     'dynamic': 'f₀(t) = 4.9e6·β·[Δσ/(NR·M₀,avg)]^(1/3)',
     'double':  'fa=0.2fc  fb=3.5fc  ε=0.55  (A&S 2000)',
     'tang':    'f₀=0.5·Vr·√(π/(NR·Δl·Δw))  (Tang 2022)',
+    'slip':   'fc = k·Vr·(D₁₁/D̄)^0.5·√(π/A)  (Slip-Weighted)',
 }
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -177,6 +183,7 @@ class BhujApp:
             (' 📊 FAS ',       self._tab_fas),
             (' 📉 Spectra (T)', self._tab_specT),
             (' 📉 Spectra (Hz)', self._tab_specHz),
+            (' 📊 PSA vs Hz', self._tab_psa_hz),
             (' 🔬 Spec from TH', self._tab_spec_th),
             (' 📋 Comparison ', self._tab_compare),
             (' 📁 Station Data', self._tab_station),
@@ -889,6 +896,55 @@ REFERENCES:
         self.fig_sth.tight_layout(rect=[0,0,1,0.95]); self.cv_sth.draw()
 
     # ══ TAB 8: COMPARISON ═════════════════════════════════════════════════
+    # ══ TAB: PSA vs Hz ═══════════════════════════════════════════════════════
+    def _tab_psa_hz(self, parent):
+        tk.Label(parent, text='PSA (Pseudo-Velocity Acceleration) vs Hz — Simulated vs Station',
+                 bg='#1A3A5C', fg='#64B5F6', font=('Helvetica',11,'bold'), pady=8).pack(fill=tk.X, padx=4, pady=2)
+        ctl = tk.Frame(parent, bg='#2C3E50'); ctl.pack(fill=tk.X, padx=4, pady=2)
+        tk.Button(ctl, text='⟳ Refresh', command=self._plot_psa_hz,
+                   bg='#1565C0', fg='white', relief=tk.FLAT, font=('Helvetica',9), padx=8).pack(side=tk.LEFT, padx=8)
+        tk.Checkbutton(ctl, text='Show station', variable=self._use_sta,
+                        command=self._plot_psa_hz, bg='#2C3E50', fg='white',
+                        selectcolor='#2C3E50').pack(side=tk.LEFT, padx=8)
+        self.fig_psa, self.cv_psa = self._fig(parent, figsize=(13,7))
+        add_style_toolbar(parent, self.fig_psa, self.cv_psa,
+                          lambda: self.fig_psa.axes[0] if self.fig_psa.axes else None, 'psa_hz.csv')
+        self._plot_psa_hz()
+
+    def _plot_psa_hz(self, *_):
+        self.fig_psa.clear(); p = self._get_p()
+        has_sim = bool(self.sim_results)
+        has_sta = self._use_sta.get() and self.station_data.get('sa') is not None
+        
+        if not has_sim and not has_sta:
+            ax = self.fig_psa.add_subplot(111)
+            ax.text(0.5,0.5,'Run simulation (Tab 2) or load station data (Tab 9)',
+                    ha='center',va='center',transform=ax.transAxes,fontsize=13,color='gray')
+            self.cv_psa.draw(); return
+        
+        ax = self.fig_psa.add_subplot(111)
+        
+        if has_sim:
+            for m,res in self.sim_results.items():
+                if 'periods' in res and 'sa' in res:
+                    freq = 1.0 / np.maximum(res['periods'], 1e-5)
+                    ax.loglog(freq, res['sa'], color=MC[m], lw=1.5, ls=MLS[m], label=f'{MLB[m]} (Sim)')
+        
+        if has_sta and self.station_data.get('sa') is not None:
+            freq_sta = 1.0 / np.maximum(self.station_data['sa_periods'], 1e-5)
+            ax.loglog(freq_sta, self.station_data['sa'], 'k-', lw=2.5, label='Station PSA (PESMOS)')
+        
+        ax.set_xlabel('Frequency (Hz)')
+        ax.set_ylabel('PSA (Pseudo-Velocity Acceleration in g)')
+        ax.set_title('PSA vs Hz — Full Form: Pseudo-Velocity Acceleration')
+        ax.legend(fontsize=9, loc='best')
+        ax.grid(True, which='both', alpha=0.3)
+        ax.set_xlim(0.01, 50)
+        
+        self.fig_psa.suptitle(f'Bhuj Mw {p["Mw"]} — PSA vs Hz', fontsize=10, fontweight='bold')
+        self.fig_psa.tight_layout(rect=[0,0,1,0.95])
+        self.cv_psa.draw()
+
     def _tab_compare(self, parent):
         tk.Label(parent, text='COMPARISON TABLE & SUMMARY PLOTS',
                  bg='#1A3A5C', fg='#64B5F6', font=('Helvetica',11,'bold'), pady=8).pack(fill=tk.X, padx=4, pady=2)
