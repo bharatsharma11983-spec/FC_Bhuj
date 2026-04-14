@@ -84,7 +84,7 @@ class BhujApp:
 
     # ── helpers ─────────────────────────────────────────────────────────
     def _try_load_embedded(self):
-        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        base = '/mnt/user-data/uploads'
         for k,fn in [('L','ahmdgl.dat'),('T','ahmdgt.dat'),
                      ('V','ahmdgv.dat'),('VS','ahmdgv.vs')]:
             fp = f'{base}/india_200101260317_{fn}'
@@ -180,7 +180,6 @@ class BhujApp:
             (' 🔬 Spec from TH', self._tab_spec_th),
             (' 📋 Comparison ', self._tab_compare),
             (' 📁 Station Data', self._tab_station),
-            (' 📊 HUSID Plot', self._tab_husid),
             (' 📄 Report ',    self._tab_report),
         ]
         for name, builder in tabs:
@@ -199,7 +198,7 @@ class BhujApp:
         nm_f = tk.Frame(parent, bg='#1A3A5C'); nm_f.pack(fill=tk.X, padx=4, pady=2)
         tk.Label(nm_f, text='Case Name:', bg='#1A3A5C', fg='white', font=('Helvetica',9,'bold')).pack(side=tk.LEFT, padx=8)
         tk.Entry(nm_f, textvariable=self.pv['case_name'], bg='#0D1B2A', fg='#FFE082',
-                 font=('Helvetica',12,'bold'), width=55, relief=tk.FLAT,
+                 font=('Helvetica',10,'bold'), width=55, relief=tk.FLAT,
                  insertbackground='white').pack(side=tk.LEFT, padx=4, fill=tk.X, expand=True)
         main = tk.Frame(parent, bg='#2C3E50'); main.pack(fill=tk.BOTH, expand=True, padx=4)
         c0 = tk.LabelFrame(main, text='  Source Parameters  ', bg='#1E2A3A', fg='#90CAF9', font=('Helvetica',9,'bold'))
@@ -271,7 +270,7 @@ class BhujApp:
         self._lf(tp_lf, 'Coefficient a', 0, self.pv['Tpath_a'], width=12)
         self._lf(tp_lf, 'Constant b',    1, self.pv['Tpath_b'], width=12)
         tk.Label(tp_lf, text='[Standard: a=0.108, b=15.5939, Chopra 2010]\nT_path is the path duration (travel time component).\nSource duration T_src = 1/fc; total window = T_src + T_path.',
-                 bg='#1E2A3A', fg='#A5D6A7', font=('Helvetica',12,'bold'), justify=tk.LEFT).grid(
+                 bg='#1E2A3A', fg='#A5D6A7', font=('Courier',7), justify=tk.LEFT).grid(
                      row=2, column=0, columnspan=2, padx=4, pady=2, sticky='w')
         tk.Button(tp_lf, text='?  What is T_path?', command=self._tpath_info,
                    bg='#1565C0', fg='white', relief=tk.FLAT, font=('Helvetica',7)).grid(
@@ -318,12 +317,12 @@ class BhujApp:
             '• Nuclear site:  ≥30 seeds, report\n'
             '  mean±σ envelope')
         tk.Label(seed_lf, text=seed_info, bg='#0D1B2A', fg='#A5D6A7',
-                 font=('Helvetica',12,'bold'), justify=tk.LEFT, padx=6, pady=4).grid(
+                 font=('Courier',7), justify=tk.LEFT, padx=6, pady=4).grid(
                      row=2, column=0, columnspan=2, padx=4, sticky='w')
 
         # Derived values
         self._drv = tk.Label(c2, text='', bg='#0D1B2A', fg='#64B5F6',
-                              font=('Helvetica',12,'bold'), justify=tk.LEFT, padx=4, pady=4)
+                              font=('Courier',7), justify=tk.LEFT, padx=4, pady=4)
         self._drv.grid(row=7, column=0, columnspan=2, padx=4, pady=2, sticky='w')
 
         def _upd(*_):
@@ -462,7 +461,7 @@ CHANGING THE COEFFICIENTS:
         w = tk.Toplevel(self.root); w.title(f'Bhuj {title} Profile — View & Edit')
         w.configure(bg='#1E2A3A'); w.geometry('1000x550')
         tk.Label(w, text=f'Bhuj Crustal {title} Profile — Editable Layers',
-                 bg='#1A3A5C', fg='#64B5F6', font=('Helvetica',12,'bold'), pady=6).pack(fill=tk.X)
+                 bg='#1A3A5C', fg='#64B5F6', font=('Helvetica',10,'bold'), pady=6).pack(fill=tk.X)
         # Header
         hf = tk.Frame(w, bg='#1A3A5C'); hf.pack(fill=tk.X, padx=6)
         col_ws = [28, 12, 12, 10, 38]
@@ -488,7 +487,7 @@ CHANGING THE COEFFICIENTS:
             f'Effective depth-weighted {title} for focal depth {p["depth"]} km: {eff:.4f}\n'
             'Sources: Biswas (1987) EPSL; Mandal & Rastogi (2005) BSSA 95; Kayal et al. (2002) Tectonophysics;\n'
             'Chandrasekhar et al. (2004) GRL; NGRI (2001) Technical Report; Rajendran & Rajendran (2001) Curr.Sci.'),
-                 bg='#1E2A3A', fg='#A5D6A7', font=('Helvetica',12,'bold'), justify=tk.LEFT).pack(padx=8, pady=4)
+                 bg='#1E2A3A', fg='#A5D6A7', font=('Courier',7), justify=tk.LEFT).pack(padx=8, pady=4)
         def apply_edit():
             try:
                 for i, (row, rv) in enumerate(zip(layer_list, row_vars)):
@@ -523,8 +522,8 @@ CHANGING THE COEFFICIENTS:
                             bg='#1E2A3A', fg=MC[m], selectcolor='#1E2A3A',
                             activebackground='#1E2A3A',
                             font=('Helvetica',9,'bold')).pack(side=tk.LEFT)
-            tk.Label(fr, text=f'  {FC_EQS[m]}', bg='#1E2A3A', fg='#FFFF00',
-                     font=('Helvetica',12,'bold')).pack(side=tk.LEFT, padx=4)
+            tk.Label(fr, text=f'  {FC_EQS[m]}', bg='#1E2A3A', fg='#A5D6A7',
+                     font=('Courier',7)).pack(side=tk.LEFT, padx=4)
         seed_f = tk.LabelFrame(top, text=' Seeds ', bg='#1E2A3A', fg='#90CAF9', font=('Helvetica',9))
         seed_f.pack(side=tk.LEFT, padx=8, pady=6)
         tk.Label(seed_f, text='Seeds (comma sep.):', bg='#1E2A3A', fg='white', font=('Helvetica',8)).pack(anchor='w', padx=6, pady=(6,2))
@@ -532,7 +531,7 @@ CHANGING THE COEFFICIENTS:
         tk.Entry(seed_f, textvariable=self._seeds, bg='#0D1B2A', fg='#E3F2FD',
                  font=('Courier',9), width=22, relief=tk.FLAT).pack(padx=6, pady=4)
         tk.Label(seed_f, text='Each seed = 1 random realization.\nMEDIAN of all realizations used.\nMore seeds = more stable result.',
-                 bg='#1E2A3A', fg='#A5D6A7', font=('Helvetica',12,'bold'), justify=tk.LEFT).pack(padx=6, pady=2)
+                 bg='#1E2A3A', fg='#A5D6A7', font=('Courier',7), justify=tk.LEFT).pack(padx=6, pady=2)
         btn_f = tk.Frame(top, bg='#1E2A3A'); btn_f.pack(side=tk.LEFT, padx=14, pady=6)
         tk.Button(btn_f, text='▶  RUN ALL SELECTED MODELS',
                    command=lambda: threading.Thread(target=self._run_sim, daemon=True).start(),
@@ -664,7 +663,7 @@ CHANGING THE COEFFICIENTS:
         w = tk.Toplevel(self.root); w.title('FAS vs Response Spectra — Explanation')
         w.configure(bg='#1E2A3A'); w.geometry('680x500')
         tk.Label(w, text='FAS vs Response Spectra — Key Differences',
-                 bg='#1A3A5C', fg='#64B5F6', font=('Helvetica',12,'bold'), pady=6).pack(fill=tk.X)
+                 bg='#1A3A5C', fg='#64B5F6', font=('Helvetica',10,'bold'), pady=6).pack(fill=tk.X)
         txt = scrolledtext.ScrolledText(w, bg='#0D1B2A', fg='#E3F2FD', font=('Courier',8), wrap=tk.WORD)
         txt.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
         txt.insert('1.0', """
@@ -1055,11 +1054,11 @@ REFERENCES:
         self._calc_ch=tk.StringVar(value='V')
         for v,lbl in [('L','EW'),('T','NS'),('V','Vertical')]:
             tk.Radiobutton(zf,text=lbl,variable=self._calc_ch,value=v,bg='#1E2A3A',fg='white',selectcolor='#1E2A3A',font=('Helvetica',8)).pack(side=tk.LEFT,padx=4)
-        self._calc_log=tk.Label(calc_lf,text='',bg='#1E2A3A',fg='#A5D6A7',font=('Helvetica',12,'bold'))
+        self._calc_log=tk.Label(calc_lf,text='',bg='#1E2A3A',fg='#A5D6A7',font=('Courier',7))
         self._calc_log.pack(padx=8,pady=2)
         tk.Button(calc_lf,text='▶ Calculate RS from Station TH',
                    command=lambda:threading.Thread(target=self._calc_sta_rs,daemon=True).start(),
-                   bg='#D35400',fg='white',font=('Helvetica',12,'bold'),relief=tk.FLAT,padx=14,pady=6).pack(pady=6)
+                   bg='#D35400',fg='white',font=('Helvetica',10,'bold'),relief=tk.FLAT,padx=14,pady=6).pack(pady=6)
 
     def _calc_sta_rs(self):
         ch=self._calc_ch.get()
@@ -1171,78 +1170,13 @@ REFERENCES:
         self.fig_sta.tight_layout(rect=[0,0,1,0.95]); self.cv_sta.draw()
 
     # ══ TAB 10: REPORT ════════════════════════════════════════════════════
-    # ══ TAB: HUSID (Energy Dissipation) ═════════════════════════════════════
-    def _tab_husid(self, parent):
-        tk.Label(parent, text='HUSID — Energy Dissipation Analysis (Simulated vs Station)',
-                 bg='#1A3A5C', fg='#64B5F6', font=('Helvetica',11,'bold'), pady=8).pack(fill=tk.X, padx=4, pady=2)
-        ctl = tk.Frame(parent, bg='#2C3E50'); ctl.pack(fill=tk.X, padx=4, pady=2)
-        tk.Button(ctl, text='⟳ Refresh', command=self._plot_husid,
-                   bg='#1565C0', fg='white', relief=tk.FLAT, font=('Helvetica',9), padx=8).pack(side=tk.LEFT, padx=8)
-        tk.Checkbutton(ctl, text='Show station', variable=self._use_sta,
-                        command=self._plot_husid, bg='#2C3E50', fg='white',
-                        selectcolor='#2C3E50').pack(side=tk.LEFT, padx=8)
-        self.fig_husid, self.cv_husid = self._fig(parent, figsize=(13,7))
-        add_style_toolbar(parent, self.fig_husid, self.cv_husid, 
-                          lambda: self.fig_husid.axes[0] if self.fig_husid.axes else None, 'husid.csv')
-        self._plot_husid()
-
-    def _plot_husid(self, *_):
-        self.fig_husid.clear(); p = self._get_p()
-        has_sim = bool(self.sim_results)
-        has_sta = self._use_sta.get() and any(self.station_data[ch] is not None for ch in ['L','T','V'])
-        if not has_sim and not has_sta:
-            ax = self.fig_husid.add_subplot(111)
-            ax.text(0.5,0.5,'Run simulation (Tab 2) or load station data (Tab 9)',
-                    ha='center',va='center',transform=ax.transAxes,fontsize=13,color='gray')
-            self.cv_husid.draw(); return
-        # HUSID: Cumulative squared velocity (energy proxy)
-        gs = gridspec.GridSpec(2,1,figure=self.fig_husid,hspace=0.35)
-        
-        # Top: HUSID vs Time
-        ax1 = self.fig_husid.add_subplot(gs[0])
-        if has_sim:
-            for m,res in self.sim_results.items():
-                cumsum = np.cumsum(res['acc']**2) * res['dt']
-                ax1.plot(res['time'], cumsum, color=MC[m], lw=1.5, ls=MLS[m], label=f'{MLB[m]} (sim)')
-        if has_sta:
-            for ch in ['L','T','V']:
-                if self.station_data[ch] is not None:
-                    t,a = self.station_data[ch]
-                    cumsum = np.cumsum(a**2) * (t[1]-t[0])
-                    ax1.plot(t, cumsum, lw=1.0, label=f'Station {ch}')
-        ax1.set_xlabel('Time (s)'); ax1.set_ylabel('∫A² dt (Energy)')
-        ax1.set_title('HUSID — Cumulative Squared Acceleration (Energy Dissipation)')
-        ax1.legend(fontsize=8); ax1.grid(alpha=0.3)
-        
-        # Bottom: Energy spectrum
-        ax2 = self.fig_husid.add_subplot(gs[1])
-        if has_sim:
-            for m,res in self.sim_results.items():
-                fa, A = res.get('fas') or (None, None)
-                if fa is not None:
-                    ax2.loglog(fa, A**2, color=MC[m], lw=1.5, ls=MLS[m], label=f'{MLB[m]} (sim)')
-        if has_sta:
-            for ch in ['L','T','V']:
-                if self.station_data[ch] is not None:
-                    t,a = self.station_data[ch]
-                    fr, fa = self.sim_results.get('brune',{}).get('fas', (None,None))
-                    if fr is None:
-                        eng = SFFEngine(p)
-                        fr, fa = eng.fas(t, a)
-                    ax2.loglog(fr, fa**2, lw=1.0, label=f'Station {ch}')
-        ax2.set_xlabel('Frequency (Hz)'); ax2.set_ylabel('|A|²')
-        ax2.set_title('Energy Spectrum')
-        ax2.legend(fontsize=8); ax2.grid(alpha=0.3)
-        
-        self.fig_husid.suptitle(f'Bhuj Mw {p["Mw"]} — Energy Dissipation Analysis',fontsize=10,fontweight='bold')
-        self.fig_husid.tight_layout(rect=[0,0,1,0.95]); self.cv_husid.draw()
     def _tab_report(self, parent):
         tk.Label(parent, text='GENERATE TECHNICAL REPORT (HTML + Markdown)',
                  bg='#1A3A5C', fg='#64B5F6', font=('Helvetica',11,'bold'), pady=8).pack(fill=tk.X, padx=4, pady=2)
         ctl=tk.Frame(parent,bg='#2C3E50'); ctl.pack(fill=tk.X,padx=4,pady=4)
-        tk.Button(ctl,text='📄 HTML Report',command=self._gen_html,bg='#27AE60',fg='white',font=('Helvetica',12,'bold'),relief=tk.FLAT,padx=14,pady=6).pack(side=tk.LEFT,padx=8)
-        tk.Button(ctl,text='📝 MD Report',command=self._gen_md,bg='#D35400',fg='white',font=('Helvetica',12,'bold'),relief=tk.FLAT,padx=14,pady=6).pack(side=tk.LEFT,padx=4)
-        tk.Button(ctl,text='📐 Equations HTML',command=self._gen_eq_html,bg='#8E44AD',fg='white',font=('Helvetica',12,'bold'),relief=tk.FLAT,padx=14,pady=6).pack(side=tk.LEFT,padx=4)
+        tk.Button(ctl,text='📄 HTML Report',command=self._gen_html,bg='#27AE60',fg='white',font=('Helvetica',10,'bold'),relief=tk.FLAT,padx=14,pady=6).pack(side=tk.LEFT,padx=8)
+        tk.Button(ctl,text='📝 MD Report',command=self._gen_md,bg='#D35400',fg='white',font=('Helvetica',10,'bold'),relief=tk.FLAT,padx=14,pady=6).pack(side=tk.LEFT,padx=4)
+        tk.Button(ctl,text='📐 Equations HTML',command=self._gen_eq_html,bg='#8E44AD',fg='white',font=('Helvetica',10,'bold'),relief=tk.FLAT,padx=14,pady=6).pack(side=tk.LEFT,padx=4)
         self._rep=scrolledtext.ScrolledText(parent,bg='#0D1B2A',fg='#E3F2FD',font=('Courier',8),wrap=tk.WORD)
         self._rep.pack(fill=tk.BOTH,expand=True,padx=8,pady=4)
         self._rep.insert('1.0','← Run simulation then click Generate.\n')
