@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<title>Bhuj SFF — All Equations Reference</title>
+<style>
+body{font-family:Georgia,serif;max-width:1050px;margin:auto;padding:24px;background:#FAFAFA;}
+h1{color:#1A3A5C;border-bottom:3px solid #1A3A5C;}
+h2{color:#1565C0;margin-top:28px;}
+h3{color:#00695C;}
+.eq{background:#FFF8F8;border-left:5px solid #C0392B;padding:12px 16px;
+     font-family:'Courier New',monospace;margin:12px 0;border-radius:0 4px 4px 0;font-size:.92rem;}
+.var{background:#F5F7FA;border:1px solid #CFD8DC;padding:10px;margin:8px 0;font-size:.88rem;}
+.tab{color:#8E44AD;font-weight:bold;}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.87rem;}
+th{background:#1A3A5C;color:white;padding:8px 10px;text-align:left;}
+td{padding:7px 10px;border-bottom:1px solid #CFD8DC;}
+tr:nth-child(even){background:#F5F7FA;}
+</style></head><body>
+<h1>Bhuj SFF Case 7 — All Equations Reference</h1>
+<p><em>Tab-wise, sequence-wise listing of all equations in the Python code.
+Bhuj Mw 7.7 parameter values shown where applicable.</em></p>
+
+<h2>TAB 1 — Parameters</h2>
+<h3>Derived Quantities</h3>
+<div class="eq">M₀ = 10^(1.5·Mw + 16.05)  [dyne-cm]
+  = 10^(1.5×7.7 + 16.05) = 3.981e+27 dyne-cm
+  [Hanks &amp; Kanamori 1979, BSSA]</div>
+<div class="var"><b>M₀</b> = seismic moment [dyne-cm]; <b>Mw</b> = moment magnitude</div>
+
+<div class="eq">fc = 4.9×10⁶ × β × (Δσ/M₀)^(1/3)  [Hz]
+  = 4.9×10⁶ × 3.8 × (100/3.98e+27)^(1/3) = 0.05453 Hz
+  [Brune 1970, JGR 75:4997]</div>
+<div class="var"><b>fc</b> = corner frequency; <b>β</b> = shear velocity 3.8 km/s; <b>Δσ</b> = stress drop 100 bars</div>
+
+<div class="eq">T_src = 1/fc = 18.34 s  [source duration, Boore 2009]</div>
+<div class="eq">T_path = a·R + b = 0.108×230 + 15.5939 = 40.4 s
+  [Chopra et al. 2010, Table 4.2]</div>
+<div class="var"><b>T_path</b> = path duration; <b>a</b> = 0.108 s/km; <b>b</b> = 15.5939 s; <b>R</b> = 230 km</div>
+
+<div class="eq">ρ_eff = Σ(ρᵢ·Δzᵢ) / Σ(Δzᵢ)  [weighted density, g/cm³]
+  [Biswas 1987; Mandal &amp; Rastogi 2005]</div>
+<div class="eq">β_eff = Σ(βᵢ·Δzᵢ) / Σ(Δzᵢ)  [weighted Vs, km/s]
+  [NGRI 2001; Chandrasekhar 2004]</div>
+
+<h2>TAB 2 — Simulate (Corner Frequency Models)</h2>
+
+<h3>Eq.1 — Brune (1970) Natural Whole-Fault fc</h3>
+<div class="eq">fc = 4.9×10⁶ × β × (Δσ/M₀)^(1/3) = 0.05453 Hz
+PHYSICAL — observable in recorded seismic spectra.
+4.9×10⁶ = constant from Brune circular dislocation model.</div>
+
+<h3>Eq.2 — Type I Static fc (FINSIM, Beresnev &amp; Atkinson 1997)</h3>
+<div class="eq">fc_sub = 4.9×10⁶ × β × (Δσ/M₀_sub)^(1/3)  where M₀_sub = M₀/N
+  = 4.9×10⁶ × 3.8 × (100/5.69e+25)^(1/3)
+  ⚠️ GRID DEPENDENT — fc changes with N, non-physical for Mw&gt;5.5</div>
+<div class="var"><b>N</b> = total subfaults = NL×NW = 70; <b>M₀_sub</b> = M₀/N = 5.69e+25 dyne-cm</div>
+
+<h3>Eq.3 — Type II Dynamic fc (EXSIM, Motazedian &amp; Atkinson 2005)</h3>
+<div class="eq">f₀_ij(t) = 4.9×10⁶ × β × [Δσ/(NR(t)·M₀,avg)]^(1/3)  [Hz]
+  NR(t) = number of subfaults ruptured at time t
+  M₀,avg = M₀/N = constant
+  At t=0: NR=1 → fc is maximum; At t=end: NR=N → fc = Brune fc ✅
+  GRID INDEPENDENT — converges regardless of N.</div>
+<div class="var"><b>NR(t)</b> = cumulative subfaults ruptured [1 → N]; <b>M₀,avg</b> = 5.69e+25 dyne-cm</div>
+
+<h3>Eq.4 — Type III Double-Corner (Atkinson &amp; Silva 2000)</h3>
+<div class="eq">S(f) = (Cr·M₀·f²) × [ε·B(f,fa) + (1-ε)·B(f,fb)]
+  B(f,fx) = 1/(1+(f/fx)²)  [Brune shape at corner fx]
+  fa = 0.20·fc = 0.01091 Hz  (global fault dimension)
+  fb = 3.50·fc = 0.19086 Hz  (asperity scale)
+  ε = 0.55  (weighting)
+  → Produces spectral sag at 0.2–1 Hz seen in large event recordings.</div>
+
+<h3>Eq.5 — Type IV Tang (2022), BSSA 112:921</h3>
+<div class="eq">f₀_ij = k · Vr · L̄_ij⁻¹  where L̄_ij = √(NR·Δl·Δw/π)
+  f₀ = k·Vr·√[π/(NR·Δl·Δw)]
+  k = 0.5 (calibration constant); Vr = 3.04 km/s = 0.8β
+  Δl = 7.5 km; Δw = 5 km
+  → Explicit rupture velocity coupling missing from EXSIM.</div>
+
+<h3>Eq.6 — Complete SFF Fourier Acceleration Spectrum</h3>
+<div class="eq">|A(f)| = Cr · M₀ · [f²/(fc²+f²)] · G(R) · P(f,R) · K(f) · AF  [cm/s]
+
+Cr = (Rθφ·Fs·Fc) / (4π·ρ·β³)  [radiation constant]
+   = (0.55×2.0) / (4π×2.8×(3.80e+05)³)
+
+G(R) = geometric spreading [CGS, 1/cm]:
+  1/R / 1e5               (R &lt; 40 km)
+  40⁻¹·(R/40)⁻⁰·⁵ / 1e5  (40 ≤ R ≤ 80 km)
+  40⁻¹·2⁻⁰·⁵·(R/80)⁻⁰·⁵⁵ / 1e5  (R &gt; 80 km)
+  [Table 4.2, Chopra 2010]
+
+P(f,R) = exp(−πfR/Q(f)β)  [anelastic attenuation]
+  Q(f) = Q₀·f^η = 790·f^0.35  [Chopra 2010]
+
+K(f) = exp(−πκ₀f) = exp(−π×0.0237×f)  [kappa filter, Anderson &amp; Hough 1984]
+
+AF = (760/Vs30)^0.3 = (760/400)^0.3 = 1.2123  [Vs30 amp.]
+</div>
+<div class="var"><b>Rθφ</b>=0.55 (rms radiation); <b>Fs</b>=2.0 (free surface); <b>ρ</b>=2.8 g/cm³; <b>β</b>=3.8 km/s; <b>κ₀</b>=0.0237 s</div>
+
+<h2>TAB 2 — Stochastic Synthesis</h2>
+
+<h3>Eq.7 — Boore (2003) Stochastic Time History [PGA FIX]</h3>
+<div class="eq">STOCHASTIC SYNTHESIS STEPS:
+1. Compute |A(f)| for chosen model [Eq.6]
+2. Generate white Gaussian noise n(t), apply Saragoni-Hart taper window w(t)
+3. FFT of windowed noise → extract phases φ(f) = arg[FFT(n·w)]
+4. Shape with target amplitudes: X(f) = |A(f)| · exp(iφ(f))
+5. Inverse FFT → acc(t), apply window again
+
+KEY FIX — RMS normalisation (Boore 2003, Eq.3):
+  σ²_target = (2/T_dur) × ∫|A(f)|² df  [one-sided PSD]
+  σ_target = √(2·∫|A(f)|²·df / T_dur)
+
+  PREVIOUS WRONG: σ = √(2·∫|A(f)|²·df)  → 10–20× too large (PGA~1600 cm/s²)
+  CORRECTED:      σ = √(2·∫|A(f)|²·df / T_dur)  → PGA~50–200 cm/s² ✓
+
+T_dur = T_src + T_path + R/β = 18.3 + 40.4 + 60.5 = 119.3 s</div>
+
+<h2>TAB 3–7 — Response Spectrum</h2>
+
+<h3>Eq.8 — Newmark Average Acceleration (Chopra 2012, §5.2)</h3>
+<div class="eq">SDOF equation: mü + cü + ku = −m·üg(t)
+For unit mass: ü + 2ζωu̇ + ω²u = −üg(t)
+
+Effective stiffness (γ=0.5, β_nb=0.25):
+  k_eff = ω² + 4ζω/Δt + 4/Δt²
+
+Modified incremental force:
+  ΔP̂ = Δp + (4/Δt + 4ζω)·v + 2·a_sdof
+
+Increments:
+  Δu = ΔP̂ / k_eff
+  Δv = (2/Δt)·Δu − 2v
+  Δa = (4/Δt²)·Δu − (4/Δt)·v − 2·a_sdof
+
+PSA(T,ζ) = ω² × max|u(t)|  [g]
+
+[Reference: Chopra A.K. (2012). Dynamics of Structures. Table 5.2.2]
+[Also: ASCE 4-16, IEEE 693, IS 1893:2016, IAEA-TECDOC-1333]</div>
+<div class="var"><b>ω</b>=2π/T [rad/s]; <b>ζ</b>=0.05 (5% damping); <b>Δt</b>=0.005 s; <b>PSA</b>=pseudo-spectral acceleration</div>
+
+<h2>IS 1893 Design Spectra</h2>
+<div class="eq">IS 1893:2016 Zone V (Z=0.36g):
+  Sa(T) =
+    Z·(1+15T)     T ≤ 0.10 s  [rising]
+    Z·2.5          0.10 &lt; T ≤ 0.55 s  [plateau]
+    Z·2.5·0.55/T   0.55 &lt; T ≤ 4.0 s  [decay]
+    Z·2.5·0.55/4·(4/T)²  T &gt; 4.0 s  [far decay]
+
+IS 1893:2024 (WITHDRAWN March 2024 by BIS):
+  Proposed Zone VI Z=0.50g with steeper plateau Sa_p=3.0g
+  NOT applicable — IS 1893:2016 reinstated by Ministry of Housing &amp; Urban Affairs</div>
+
+<h2>Key Physical Constants</h2>
+<table><tr><th>Symbol</th><th>Name</th><th>Value (Bhuj Case)</th><th>Unit</th></tr>
+<tr><td>M₀</td><td>Seismic moment</td><td>3.981e+27</td><td>dyne-cm</td></tr>
+<tr><td>fc</td><td>Brune corner freq.</td><td>0.05453</td><td>Hz</td></tr>
+<tr><td>T_src</td><td>Source duration</td><td>18.34</td><td>s</td></tr>
+<tr><td>β</td><td>Shear velocity (source)</td><td>3.8</td><td>km/s</td></tr>
+<tr><td>ρ</td><td>Density (constant)</td><td>2.8</td><td>g/cm³</td></tr>
+<tr><td>Δσ</td><td>Stress drop</td><td>100</td><td>bars</td></tr>
+<tr><td>Q₀</td><td>Q factor (1 Hz)</td><td>790</td><td>—</td></tr>
+<tr><td>η</td><td>Q frequency exponent</td><td>0.35</td><td>—</td></tr>
+<tr><td>κ₀</td><td>Site kappa</td><td>0.0237</td><td>s</td></tr>
+<tr><td>Vs30</td><td>Site shear vel. top 30m</td><td>400</td><td>m/s</td></tr>
+<tr><td>R</td><td>Hypocentral distance</td><td>230</td><td>km</td></tr>
+<tr><td>N</td><td>Total subfaults</td><td>70</td><td>—</td></tr>
+<tr><td>Vr</td><td>Rupture velocity</td><td>3.04</td><td>km/s</td></tr>
+</table>
+
+<footer style="margin-top:40px;border-top:1px solid #CFD8DC;padding-top:10px;color:#888;font-size:.8rem;">
+Bhuj SFF Case 7 Equations Reference | Chopra 2010, Motazedian &amp; Atkinson 2005, Boore 2003, Brune 1970
+</footer></body></html>
