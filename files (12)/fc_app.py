@@ -1218,7 +1218,19 @@ REFERENCES:
         if self.station_data.get('sa') is not None:
             lines.append(f'  RS: {len(self.station_data["sa"])} periods  ✓')
         else: lines.append('  RS (.vs): Not loaded')
-        if hasattr(self,'_st_info'): self._st_info.config(text='\n'.join(lines))
+        if hasattr(self,'_st_info'):
+            # Add % error with simulation if both exist
+            if self.sim_results and any(self.station_data[ch] is not None for ch in ['L','T','V']):
+                for m, res in self.sim_results.items():
+                    if res.get('pga_cms2'):
+                        sim_pga = res['pga_cms2']
+                        for ch in ['L','T','V']:
+                            if self.station_data.get(ch):
+                                sta_pga = np.max(np.abs(self.station_data[ch][1])) * 100
+                                if sta_pga > 0:
+                                    err = abs(sim_pga - sta_pga) / sta_pga * 100
+                                    lines.append(f'  % Error vs {ch}: {err:.1f}% ({m})')
+            self._st_info.config(text='\n'.join(lines))
 
     def _plot_sta_psa_hz(self, *_):
         """PSA (Pseudo-Velocity Acceleration) vs Hz for station data."""
@@ -1532,3 +1544,42 @@ def main():
 
 if __name__=='__main__':
     main()
+
+    # ══ Time History Matching ═══════════════════════════════════════════════
+    def _match_time_history(self, sim_acc, sta_acc, sim_time, sta_time):
+        """Match simulated time history to station record.
+        Adjusts amplitude and duration to match station nature.
+        
+        Returns: matched_acc, scale_factor, corr_percent
+        """
+        import numpy as np
+        from scipy import signal
+        
+        # Resample station to match simulated dt if needed
+        if len(sim_time) != len(sta_time):
+            sta_interp = np.interp(sim_time, sta_time, sta_acc)
+        else:
+            sta_interp = sta_acc
+        
+        # Match peak amplitude
+        sim_peak = np.max(np.abs(sim_acc))
+        sta_peak = np.max(np.abs(sta_interp))
+        scale = sta_peak / sim_peak if sim_peak > 0 else 1.0
+        matched = sim_acc * scale
+        
+        # Match duration (trim/pad to station duration)
+        if sim_time[-1] > sta_time[-1]:
+            # Trim simulated to station length
+            mask = sim_time <= sta_time[-1]
+            matched = matched[mask]
+            sim_time_adj = sim_time[mask]
+        else:
+            # Extend with zeros
+            sim_time_adj = sim_time
+        
+        # Calculate correlation
+        min_len = min(len(matched), len(sta_interp))
+        corr = np.corrcoef(matched[:min_len], sta_interp[:min_len])[0,1]
+        
+        return matched, scale * 100, corr * 100
+
