@@ -34,7 +34,7 @@ MC  = {'brune':'#888888','static':'#C0392B','dynamic':'#1565C0',
 MLB = {'brune':'Brune (natural fc)','static':'Type I Static (FINSIM)',
        'dynamic':'Type II Dynamic (EXSIM)','double':'Type III Double-Corner',
        'tang':'Type IV Tang (2022)',
-       'slip':'Type V Slip-Weighted (Proposed)'}
+       'slip':'Proposed Slip-Weighted Fc (Editable)'}
 MLS = {'brune':':','static':'--','dynamic':'-','double':'-.','tang':(0,(3,1,1,1)),
        'slip':'-'}
 
@@ -848,6 +848,7 @@ REFERENCES:
                  bg='#1A3A5C', fg='#64B5F6', font=('Helvetica',11,'bold'), pady=8).pack(fill=tk.X, padx=4, pady=2)
         ctl=tk.Frame(parent,bg='#2C3E50'); ctl.pack(fill=tk.X,padx=4,pady=2)
         tk.Button(ctl,text='⟳ Compute',command=self._plot_spec_th,bg='#27AE60',fg='white',relief=tk.FLAT,font=('Helvetica',9,'bold'),padx=10).pack(side=tk.LEFT,padx=8)
+        tk.Button(ctl,text='📈 Sa vs Hz',command=self._plot_spec_th_sa_hz,bg='#E67E22',fg='white',relief=tk.FLAT,font=('Helvetica',9,'bold'),padx=10).pack(side=tk.LEFT,padx=8)
         tk.Label(ctl,text='ζ:',bg='#2C3E50',fg='white',font=('Helvetica',9)).pack(side=tk.LEFT)
         tk.Entry(ctl,textvariable=self._zeta_var,bg='#0D1B2A',fg='#E3F2FD',font=('Courier',9),width=5,relief=tk.FLAT).pack(side=tk.LEFT,padx=4)
         for z in ['0.02','0.05','0.07','0.10','0.15','0.20']:
@@ -911,6 +912,30 @@ REFERENCES:
                           lambda: self.fig_psa.axes[0] if self.fig_psa.axes else None, 'psa_hz.csv')
         self._plot_psa_hz()
 
+
+    def _plot_spec_th_sa_hz(self, *_):
+        """Sa (Spectral Acceleration) vs Hz for simulated time histories."""
+        self.fig_sth.clear(); p = self._get_p(); eng = SFFEngine(p)
+        try: zeta = float(self._zeta_var.get())
+        except: zeta = 0.05
+        per = np.logspace(-2, 1, 100)
+        ax = self.fig_sth.add_subplot(111)
+        
+        for m, res in self.sim_results.items():
+            if 'periods' in res and 'sa' in res:
+                freq = 1.0 / np.maximum(res['periods'], 1e-5)
+                ax.loglog(freq, res['sa'] * 980, color=MC[m], lw=1.5, ls=MLS[m], label=MLB[m])
+        
+        ax.set_xlabel('Frequency (Hz)', fontsize=10)
+        ax.set_ylabel('Sa (Spectral Acceleration in cm/s²)', fontsize=10)
+        ax.set_title('Sa (Spectral Acceleration) vs Hz\nFull Form: Sa = Spectral Acceleration', fontsize=11, fontweight='bold')
+        ax.legend(fontsize=9)
+        ax.grid(True, which='both', alpha=0.3)
+        ax.set_xlim(0.01, 50)
+        
+        self.fig_sth.suptitle(f'Simulated TH — Sa vs Hz (Bhuj Mw {p["Mw"]}, ζ={zeta:.0%})', fontsize=10, fontweight='bold')
+        self.fig_sth.tight_layout(rect=[0,0,1,0.95])
+        self.cv_sth.draw()
     def _plot_psa_hz(self, *_):
         self.fig_psa.clear(); p = self._get_p()
         has_sim = bool(self.sim_results)
@@ -1062,6 +1087,10 @@ REFERENCES:
         self._update_st_info()
         rf=tk.Frame(main,bg='#2C3E50'); rf.pack(side=tk.LEFT,fill=tk.BOTH,expand=True,padx=2)
         ctl2=tk.Frame(rf,bg='#2C3E50'); ctl2.pack(fill=tk.X,pady=2)
+        tk.Button(ctl2,text='📈 PSA vs Hz',command=self._plot_sta_psa_hz,
+                   bg='#8E44AD',fg='white',font=('Helvetica',9,'bold'),relief=tk.FLAT,padx=10).pack(side=tk.LEFT,padx=6)
+        tk.Button(ctl2,text='📉 Sa vs Hz',command=self._plot_sta_sa_hz,
+                   bg='#E67E22',fg='white',font=('Helvetica',9,'bold'),relief=tk.FLAT,padx=10).pack(side=tk.LEFT,padx=6)
         tk.Button(ctl2,text='📊 Preview Station Data',command=self._plot_sta_preview,
                    bg='#1565C0',fg='white',font=('Helvetica',9,'bold'),relief=tk.FLAT,padx=10).pack(side=tk.LEFT,padx=6)
         self.fig_sta,self.cv_sta=self._fig(rf,figsize=(8,6),toolbar=True)
@@ -1190,6 +1219,97 @@ REFERENCES:
             lines.append(f'  RS: {len(self.station_data["sa"])} periods  ✓')
         else: lines.append('  RS (.vs): Not loaded')
         if hasattr(self,'_st_info'): self._st_info.config(text='\n'.join(lines))
+
+    def _plot_sta_psa_hz(self, *_):
+        """PSA (Pseudo-Velocity Acceleration) vs Hz for station data."""
+        self.fig_sta.clear(); p = self._get_p()
+        has_t = any(self.station_data[ch] is not None for ch in ['L','T','V'])
+        has_sa = self.station_data.get('sa') is not None
+        
+        if not has_t and not has_sa:
+            ax = self.fig_sta.add_subplot(111)
+            ax.text(0.5,0.5,'No station data loaded.\nLoad station data first.',ha='center',va='center',transform=ax.transAxes,fontsize=12,color='gray')
+            self.cv_sta.draw(); return
+        
+        ax = self.fig_sta.add_subplot(111)
+        cc = {'L':'#C0392B','T':'#1565C0','V':'#27AE60'}
+        ll = {'L':'EW (N78E)','T':'NS (N12W)','V':'Vertical'}
+        
+        # Plot PSA from each component if available
+        for ch in ['L','T','V']:
+            if self.station_data[ch] is not None:
+                t,a = self.station_data[ch]
+                m = self.station_data.get(f'meta_{ch}') or {}
+                pga = m.get('pga', np.max(np.abs(a)))
+                # Compute response spectrum for this component
+                eng = SFFEngine(p)
+                per = np.logspace(-2, 1, 100)
+                try:
+                    periods, sa = eng.response_spectrum(t, a, per, 0.05)
+                    freq = 1.0 / np.maximum(periods, 1e-5)
+                    ax.loglog(freq, sa, color=cc[ch], lw=1.5, label=f'{ll[ch]} PSA (g)')
+                except: pass
+        
+        # Also plot from .vs file if available
+        if has_sa:
+            freq_s = 1.0 / np.maximum(self.station_data['sa_periods'], 1e-5)
+            ax.loglog(freq_s, self.station_data['sa'], 'k-', lw=2.5, label='Station PSA (PESMOS)')
+        
+        ax.set_xlabel('Frequency (Hz)', fontsize=10)
+        ax.set_ylabel('PSA (Pseudo-Velocity Acceleration in g)', fontsize=10)
+        ax.set_title('PSA (Pseudo-Velocity Acceleration) vs Hz\nFull Form: PSA = Pseudo-Velocity Acceleration', fontsize=11, fontweight='bold')
+        ax.legend(fontsize=9)
+        ax.grid(True, which='both', alpha=0.3)
+        ax.set_xlim(0.01, 50)
+        
+        self.fig_sta.suptitle(f'Station Data — PSA vs Hz (Bhuj Mw {p["Mw"]})', fontsize=10, fontweight='bold')
+        self.fig_sta.tight_layout(rect=[0,0,1,0.95])
+        self.cv_sta.draw()
+
+    def _plot_sta_sa_hz(self, *_):
+        """Spectral Acceleration (Sa) vs Hz for station data."""
+        self.fig_sta.clear(); p = self._get_p()
+        has_t = any(self.station_data[ch] is not None for ch in ['L','T','V'])
+        has_sa = self.station_data.get('sa') is not None
+        
+        if not has_t and not has_sa:
+            ax = self.fig_sta.add_subplot(111)
+            ax.text(0.5,0.5,'No station data loaded.\nLoad station data first.',ha='center',va='center',transform=ax.transAxes,fontsize=12,color='gray')
+            self.cv_sta.draw(); return
+        
+        ax = self.fig_sta.add_subplot(111)
+        cc = {'L':'#C0392B','T':'#1565C0','V':'#27AE60'}
+        ll = {'L':'EW (N78E)','T':'NS (N12W)','V':'Vertical'}
+        
+        # Plot Sa from each component
+        for ch in ['L','T','V']:
+            if self.station_data[ch] is not None:
+                t,a = self.station_data[ch]
+                m = self.station_data.get(f'meta_{ch}') or {}
+                pga = m.get('pga', np.max(np.abs(a)))
+                eng = SFFEngine(p)
+                per = np.logspace(-2, 1, 100)
+                try:
+                    periods, sa = eng.response_spectrum(t, a, per, 0.05)
+                    freq = 1.0 / np.maximum(periods, 1e-5)
+                    ax.loglog(freq, sa * 980, color=cc[ch], lw=1.5, label=f'{ll[ch]} Sa (cm/s²)')
+                except: pass
+        
+        # From .vs file
+        if has_sa:
+            freq_s = 1.0 / np.maximum(self.station_data['sa_periods'], 1e-5)
+            ax.loglog(freq_s, self.station_data['sa'] * 980, 'k-', lw=2.5, label='Station Sa (PESMOS)')
+        
+        ax.set_xlabel('Frequency (Hz)', fontsize=10)
+        ax.set_ylabel('Sa (Spectral Acceleration in cm/s²)', fontsize=10)
+        ax.set_title('Sa (Spectral Acceleration) vs Hz\nFull Form: Sa = Spectral Acceleration', fontsize=11, fontweight='bold')
+        ax.legend(fontsize=9)
+        ax.grid(True, which='both', alpha=0.3)
+        ax.set_xlim(0.01, 50)
+        
+        self.fig_sta.suptitle(f'Station Data — Sa vs Hz (Bhuj Mw {p["Mw"]})', fontsize=10, fontweight='bold')
+        self.fig_sta.tight_layout(rect=[0,0,1,0.95])
+        self.cv_sta.draw()
 
     def _plot_sta_preview(self, *_):
         self.fig_sta.clear(); p=self._get_p(); eng=SFFEngine(p)
